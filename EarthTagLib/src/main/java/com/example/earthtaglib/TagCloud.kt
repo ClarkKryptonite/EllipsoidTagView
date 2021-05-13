@@ -20,6 +20,7 @@ class TagCloud(
 
     companion object {
         private const val DEFAULT_RADIUS = 300
+
         /**
          * 旋转单位，默认为一度
          */
@@ -38,9 +39,15 @@ class TagCloud(
     private var mCosZ = 0f
 
     /**
+     * x-y座标系下旋转角度，弧度制
+     */
+    private var rotateDegree = Math.PI / 4
+
+    /**
      * 每次绕屏幕x轴旋转的角度
      */
     private var mInertiaX = 0f
+
     /**
      * 每次绕屏幕y轴旋转的角度
      */
@@ -124,12 +131,11 @@ class TagCloud(
             theta = acos((2.0 * i - 1.0) / max - 1)
             phi = sqrt(max * Math.PI) * theta
 
-            //coordinate conversion:
+            tagList[i - 1].theta = theta
+            tagList[i - 1].phi = phi
             tagList[i - 1].spatialX = (xRadius * cos(phi) * sin(theta)).toFloat()
             tagList[i - 1].spatialY = (yRadius * sin(phi) * sin(theta)).toFloat()
             tagList[i - 1].spatialZ = (zRadius * cos(theta)).toFloat()
-            tagList[i - 1].theta = theta
-            tagList[i - 1].phi = phi
         }
     }
 
@@ -186,7 +192,7 @@ class TagCloud(
     }
 
     /**
-     * 计算旋转角度,该角度是平面角度
+     * 计算旋转角度,该角度是手机平面角度，x-y座标系和View的座标系一致，z座标正向为朝屏幕内方向
      */
     private fun recalculateAngle() {
         mSinX = sin(mInertiaX * ROTATE_DEGREE_UNIT).toFloat()
@@ -222,4 +228,6 @@ class TagCloud(
         }
         tagList.forEach { initTagColor(it) }
     }
+
+
 }

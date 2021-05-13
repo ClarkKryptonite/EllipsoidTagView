@@ -6,7 +6,7 @@ import android.view.View
 
 /**
  *
- * 每个Tag的信息
+ * 每个Tag的信息，其中spatialX和spatialY对应View的座标系，z轴座标系往屏幕里是正值
  *
  * @param view 每个tag绑定的View
  * @param spatialX 3D空间中x座标

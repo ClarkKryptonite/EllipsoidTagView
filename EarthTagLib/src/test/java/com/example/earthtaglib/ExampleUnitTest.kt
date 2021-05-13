@@ -14,6 +14,5 @@ class ExampleUnitTest {
     @Test
     fun addition_isCorrect() {
         assertEquals(4, 2 + 2)
-        val point3D = Point3D(0f, 0f, 0f)
     }
 }
