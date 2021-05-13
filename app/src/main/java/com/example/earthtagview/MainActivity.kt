@@ -10,12 +10,18 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        var num = 15
         val textList = arrayListOf<String>()
-        for (i in 1..20) {
+        for (i in 1..num) {
             textList.add("No.$i")
         }
+        val adapter = TextTagAdapter(textList)
         earth_tag.apply {
-            setAdapter(TextTagAdapter(textList))
+            setAdapter(adapter)
+        }
+        earth_add_tag.setOnClickListener {
+            textList.add("No.${++num}")
+            adapter.notifyDataSetChanged()
         }
     }
 }

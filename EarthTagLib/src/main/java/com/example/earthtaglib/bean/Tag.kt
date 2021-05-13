@@ -9,9 +9,11 @@ import android.view.View
  * 每个Tag的信息
  *
  * @param view 每个tag绑定的View
- * @param x x座标
- * @param y y座标
- * @param z z座标
+ * @param spatialX 3D空间中x座标
+ * @param spatialY 3D空间中y座标
+ * @param spatialZ 3D空间中z座标
+ * @param theta 与z轴的夹角
+ * @param phi tag和z轴所构成的平面 与x轴的夹角
  * @param scale 缩放比例
  * @param popularity 当前颜色的标记,便于[TagCloud][com.example.earthtaglib.TagCloud]标记颜色,有多少种popularity就有多少种颜色
  *
@@ -20,35 +22,14 @@ import android.view.View
  */
 class Tag(
     var view: View,
-    x: Float = 0f,
-    y: Float = 0f,
-    z: Float = 0f,
+    var spatialX: Float = 0f,
+    var spatialY: Float = 0f,
+    var spatialZ: Float = 0f,
+    var theta: Double = 0.0,
+    var phi: Double = 0.0,
     var scale: Float = 1f,
     var popularity: Int = 5
 ) : Comparable<Tag> {
-
-    /**
-     * 3D空间座标
-     */
-    var spatialPosition = Point3D()
-    var spatialX = spatialPosition.x
-        set(value) {
-            spatialPosition.x = value
-            field = value
-        }
-        get() = spatialPosition.x
-    var spatialY = spatialPosition.y
-        set(value) {
-            spatialPosition.y = value
-            field = value
-        }
-        get() = spatialPosition.y
-    var spatialZ = spatialPosition.z
-        set(value) {
-            spatialPosition.z = value
-            field = value
-        }
-        get() = spatialPosition.z
 
     /**
      * 对应手机平面的座标
@@ -67,7 +48,6 @@ class Tag(
         }
         get() = flatPosition.y
 
-
     /**
      * alpha,red,green,blue
      */
@@ -79,14 +59,6 @@ class Tag(
             field = value
         }
         get() = color[0]
-
-    init {
-        spatialPosition.apply {
-            this.x = x
-            this.y = y
-            this.z = z
-        }
-    }
 
     fun setColorComponent(rgb: FloatArray) {
         System.arraycopy(rgb, 0, color, 0, rgb.size)

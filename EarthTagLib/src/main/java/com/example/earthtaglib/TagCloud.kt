@@ -11,12 +11,19 @@ import kotlin.math.*
 class TagCloud(
     val tagList: MutableList<Tag> = arrayListOf(),
     var radius: Int = DEFAULT_RADIUS,
+    var xRadius: Int = radius,
+    var yRadius: Int = radius,
+    var zRadius: Int = radius,
     var lightColor: FloatArray = DEFAULT_COLOR_LIGHT,
     var darkColor: FloatArray = DEFAULT_COLOR_DARK
 ) {
 
     companion object {
-        private const val DEFAULT_RADIUS = 3
+        private const val DEFAULT_RADIUS = 300
+        /**
+         * 旋转单位，默认为一度
+         */
+        private const val ROTATE_DEGREE_UNIT = Math.PI / 180
         private val DEFAULT_COLOR_LIGHT = floatArrayOf(0.886f, 0.725f, 0.188f, 1f)
         private val DEFAULT_COLOR_DARK = floatArrayOf(0.3f, 0.3f, 0.3f, 1f)
     }
@@ -30,9 +37,15 @@ class TagCloud(
     private var mSinZ = 0f
     private var mCosZ = 0f
 
+    /**
+     * 每次绕屏幕x轴旋转的角度
+     */
     private var mInertiaX = 0f
+    /**
+     * 每次绕屏幕y轴旋转的角度
+     */
     private var mInertiaY = 0f
-    private val mInertiaZ = 0f
+    private var mInertiaZ = 0f
 
     private var mMinPopularity = 0
     private var mMaxPopularity = 0
@@ -91,11 +104,11 @@ class TagCloud(
      * @param newTag 需要计算位置的tag
      */
     private fun position(newTag: Tag) {
-        val phi = Math.random() * Math.PI
-        val theta = Math.random() * (2 * Math.PI)
-        newTag.spatialX = (radius * cos(theta) * sin(phi)).toFloat()
-        newTag.spatialY = (radius * sin(theta) * sin(phi)).toFloat()
-        newTag.spatialZ = (radius * cos(phi)).toFloat()
+        val theta = Math.random() * Math.PI
+        val phi = Math.random() * (2 * Math.PI)
+        newTag.spatialX = (xRadius * cos(phi) * sin(theta)).toFloat()
+        newTag.spatialY = (yRadius * sin(phi) * sin(theta)).toFloat()
+        newTag.spatialZ = (zRadius * cos(theta)).toFloat()
     }
 
     /**
@@ -103,18 +116,20 @@ class TagCloud(
      */
     private fun positionAll() {
         // 该tag 与z轴的夹角
-        var phi: Double
-        // 该tag和z轴平面 与x轴的夹角
         var theta: Double
+        // 该tag和z轴平面 与x轴的夹角
+        var phi: Double
         val max = tagList.size
         for (i in 1..max) {
-            phi = acos((2.0 * i - 1.0) / max - 1)
-            theta = sqrt(max * Math.PI) * phi
+            theta = acos((2.0 * i - 1.0) / max - 1)
+            phi = sqrt(max * Math.PI) * theta
 
             //coordinate conversion:
-            tagList[i - 1].spatialX = (radius * cos(theta) * sin(phi)).toFloat()
-            tagList[i - 1].spatialY = (radius * sin(theta) * sin(phi)).toFloat()
-            tagList[i - 1].spatialZ = (radius * cos(phi)).toFloat()
+            tagList[i - 1].spatialX = (xRadius * cos(phi) * sin(theta)).toFloat()
+            tagList[i - 1].spatialY = (yRadius * sin(phi) * sin(theta)).toFloat()
+            tagList[i - 1].spatialZ = (zRadius * cos(theta)).toFloat()
+            tagList[i - 1].theta = theta
+            tagList[i - 1].phi = phi
         }
     }
 
@@ -131,27 +146,26 @@ class TagCloud(
 
             //There exists two options for this part:
             // multiply positions by a x-rotation matrix
-            val ry1 = y * mCosX + z * -mSinX
+            val ry1 = y * mCosX - z * mSinX
             val rz1 = y * mSinX + z * mCosX
             // multiply new positions by a y-rotation matrix
-            val rx2 = x * mCosY + rz1 * mSinY
-            val rz2 = x * -mSinY + rz1 * mCosY
+            val rx2 = x * mCosY - rz1 * mSinY
+            val rz2 = x * mSinY + rz1 * mCosY
             // multiply new positions by a z-rotation matrix
-            val rx3 = rx2 * mCosZ + ry1 * -mSinZ
+            val rx3 = rx2 * mCosZ - ry1 * mSinZ
             val ry3 = rx2 * mSinZ + ry1 * mCosZ
             // set arrays to new positions
             tag.spatialX = rx3
             tag.spatialY = ry3
             tag.spatialZ = rz2
 
-            // add perspective
+            // 计算透明度
             val diameter = 2 * radius
             val per = diameter / 1.0f / (diameter + rz2)
             // let's set position, scale, alpha for the tag;
             tag.flatX = rx3 * per
             tag.flatY = ry3 * per
             tag.scale = per
-
             // calculate alpha value
             val delta = diameter + rz2
             maxDelta = max(maxDelta, delta)
@@ -159,7 +173,7 @@ class TagCloud(
             val alpha = (delta - minDelta) / (maxDelta - minDelta)
             tag.alpha = 1 - alpha
         }
-        sortTagByScale()
+        // sortTagByScale()
     }
 
     private fun getColorFromGradient(percentage: Float): FloatArray {
@@ -172,16 +186,15 @@ class TagCloud(
     }
 
     /**
-     * 计算旋转角度
+     * 计算旋转角度,该角度是平面角度
      */
     private fun recalculateAngle() {
-        val degToRad = Math.PI / 360
-        mSinX = sin(mInertiaX * degToRad).toFloat()
-        mCosX = cos(mInertiaX * degToRad).toFloat()
-        mSinY = sin(mInertiaY * degToRad).toFloat()
-        mCosY = cos(mInertiaY * degToRad).toFloat()
-        mSinZ = sin(mInertiaZ * degToRad).toFloat()
-        mCosZ = cos(mInertiaZ * degToRad).toFloat()
+        mSinX = sin(mInertiaX * ROTATE_DEGREE_UNIT).toFloat()
+        mCosX = cos(mInertiaX * ROTATE_DEGREE_UNIT).toFloat()
+        mSinY = sin(mInertiaY * ROTATE_DEGREE_UNIT).toFloat()
+        mCosY = cos(mInertiaY * ROTATE_DEGREE_UNIT).toFloat()
+        mSinZ = sin(mInertiaZ * ROTATE_DEGREE_UNIT).toFloat()
+        mCosZ = cos(mInertiaZ * ROTATE_DEGREE_UNIT).toFloat()
     }
 
     fun setTagColorLight(tagColor: FloatArray) {
@@ -193,8 +206,9 @@ class TagCloud(
     }
 
     fun setInertia(x: Float, y: Float) {
-        mInertiaX = x
-        mInertiaY = y
+        mInertiaX = 1f
+        mInertiaY = 1f
+        mInertiaZ = 0f
     }
 
     private fun sortTagByScale() {

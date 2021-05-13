@@ -10,7 +10,7 @@ import android.widget.TextView
  * @author kun
  * @since 5/12/21
  */
-class TextTagAdapter(private val dataSet: List<String>) : TagAdapter() {
+class TextTagAdapter(val dataSet: MutableList<String>) : TagAdapter() {
 
     override fun getCount(): Int {
         return dataSet.size

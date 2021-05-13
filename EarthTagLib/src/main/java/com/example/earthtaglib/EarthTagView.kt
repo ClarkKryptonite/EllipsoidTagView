@@ -3,6 +3,10 @@ package com.example.earthtaglib
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Point
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
@@ -58,6 +62,24 @@ class EarthTagView @JvmOverloads constructor(
     private val mHandler = Handler(Looper.getMainLooper())
     private lateinit var mAdapter: TagAdapter
     var mOnTagClickListener: OnTagClickListener? = null
+
+    private val sensorManager by lazy {
+        context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    }
+    private val sensorEventListener = object : SensorEventListener {
+        override fun onSensorChanged(event: SensorEvent?) {
+            event?.values?.let {
+                it.forEachIndexed { index, fl ->
+
+                }
+            }
+        }
+
+        override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+
+        }
+    }
+
 
     init {
         isFocusableInTouchMode = true
@@ -158,6 +180,11 @@ class EarthTagView @JvmOverloads constructor(
         }
     }
 
+    /**
+     * 设置触摸时最初的移动速度
+     *
+     * @param scrollSpeed 对应速度值
+     */
     fun setScrollSpeed(scrollSpeed: Float) {
         mSpeed = scrollSpeed
     }
@@ -189,11 +216,16 @@ class EarthTagView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        sensorManager.registerListener(
+            sensorEventListener, sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
         mHandler.post(this)
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        sensorManager.unregisterListener(sensorEventListener)
         mHandler.removeCallbacksAndMessages(null)
     }
 
@@ -296,7 +328,7 @@ class EarthTagView @JvmOverloads constructor(
             }
             processTouch()
         }
-        mHandler.postDelayed(this, 16)
+        mHandler.postDelayed(this, 15)
     }
 
     interface OnTagClickListener {
@@ -304,6 +336,7 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     companion object {
+        private const val TAG = "EarthTagView"
         private const val TOUCH_SCALE_FACTOR = 0.8f
         const val MODE_DISABLE = 0
         const val MODE_DECELERATE = 1
