@@ -1,0 +1,3 @@
+rootProject.name = "EarthTagView"
+include ':app'
+include ':EarthTagLib'
