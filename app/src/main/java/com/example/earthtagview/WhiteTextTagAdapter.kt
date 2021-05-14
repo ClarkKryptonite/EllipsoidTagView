@@ -1,33 +1,31 @@
-package com.example.earthtaglib.adapter
+package com.example.earthtagview
 
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import com.example.earthtaglib.adapter.TagAdapter
 
 /**
- * TagAdapter实现类，显示TextView
  * @author kun
- * @since 5/12/21
+ * @since 5/14/21
  */
-class TextTagAdapter(val dataSet: MutableList<String>) : TagAdapter() {
-
-    override fun getCount(): Int {
-        return dataSet.size
-    }
+class WhiteTextTagAdapter(val textList:MutableList<String>) : TagAdapter() {
+    override fun getCount() = textList.size
 
     override fun getView(parent: ViewGroup, position: Int): View {
         val tv = TextView(parent.context)
-        tv.text = dataSet[position]
+        tv.text = textList[position]
         tv.gravity = Gravity.CENTER
+        tv.textSize = 12f
         return tv
     }
 
     override fun getPopularity(position: Int): Int {
-        return position % 7
+        return 0
     }
 
     override fun onThemeColorChanged(view: View, themeColor: Int, alpha: Float) {
-        view.setBackgroundColor(themeColor)
+        (view as? TextView)?.setTextColor(themeColor)
     }
 }

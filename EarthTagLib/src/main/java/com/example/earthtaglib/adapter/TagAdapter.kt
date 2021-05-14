@@ -12,7 +12,6 @@ abstract class TagAdapter {
     open var onDataSetChangeListener: OnDataSetChangeListener? = null
     abstract fun getCount(): Int
     abstract fun getView(parent: ViewGroup, position: Int): View
-    abstract fun getItem(position: Int): Any?
     abstract fun getPopularity(position: Int): Int
     abstract fun onThemeColorChanged(view: View, themeColor: Int, alpha: Float)
 

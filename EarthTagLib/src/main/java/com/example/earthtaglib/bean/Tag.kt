@@ -12,8 +12,6 @@ import android.view.View
  * @param spatialX 3D空间中x座标
  * @param spatialY 3D空间中y座标
  * @param spatialZ 3D空间中z座标
- * @param theta 与z轴的夹角
- * @param phi tag和z轴所构成的平面 与x轴的夹角
  * @param scale 缩放比例
  * @param popularity 当前颜色的标记,便于[TagCloud][com.example.earthtaglib.TagCloud]标记颜色,有多少种popularity就有多少种颜色
  *
@@ -25,8 +23,6 @@ class Tag(
     var spatialX: Float = 0f,
     var spatialY: Float = 0f,
     var spatialZ: Float = 0f,
-    var theta: Double = 0.0,
-    var phi: Double = 0.0,
     var scale: Float = 1f,
     var popularity: Int = 5
 ) : Comparable<Tag> {
@@ -49,11 +45,11 @@ class Tag(
         get() = flatPosition.y
 
     /**
-     * alpha,red,green,blue
+     * opacity,red,green,blue
      */
     private var color = floatArrayOf(1f, 0.5f, 0.5f, 0.5f)
 
-    var alpha = color[0]
+    var opacity = color[0]
         set(value) {
             color[0] = value
             field = value

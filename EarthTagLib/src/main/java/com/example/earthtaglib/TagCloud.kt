@@ -11,20 +11,23 @@ import kotlin.math.*
 class TagCloud(
     val tagList: MutableList<Tag> = arrayListOf(),
     var radius: Int = DEFAULT_RADIUS,
-    var xRadius: Int = radius,
-    var yRadius: Int = radius,
-    var zRadius: Int = radius,
+    var scale: Float = DEFAULT_DELTA_SCALE,
+    var minAlpha: Float = DEFAULT_MIN_ALPHA,
+    var maxAlpha: Float = DEFAULT_MAX_ALPHA,
     var lightColor: FloatArray = DEFAULT_COLOR_LIGHT,
     var darkColor: FloatArray = DEFAULT_COLOR_DARK
 ) {
 
     companion object {
-        private const val DEFAULT_RADIUS = 300
-
         /**
-         * 旋转单位，默认为一度
+         * 旋转单位，默认为一度,弧度制
          */
         private const val ROTATE_DEGREE_UNIT = Math.PI / 180
+        private const val DEFAULT_RADIUS = 300
+        private const val DEFAULT_DELTA_SCALE = 1.5f
+        private const val DEFAULT_MIN_ALPHA = 0f
+        private const val DEFAULT_MAX_ALPHA = 0.7f
+
         private val DEFAULT_COLOR_LIGHT = floatArrayOf(0.886f, 0.725f, 0.188f, 1f)
         private val DEFAULT_COLOR_DARK = floatArrayOf(0.3f, 0.3f, 0.3f, 1f)
     }
@@ -113,9 +116,9 @@ class TagCloud(
     private fun position(newTag: Tag) {
         val theta = Math.random() * Math.PI
         val phi = Math.random() * (2 * Math.PI)
-        newTag.spatialX = (xRadius * cos(phi) * sin(theta)).toFloat()
-        newTag.spatialY = (yRadius * sin(phi) * sin(theta)).toFloat()
-        newTag.spatialZ = (zRadius * cos(theta)).toFloat()
+        newTag.spatialX = (radius * cos(phi) * sin(theta)).toFloat()
+        newTag.spatialY = (radius * sin(phi) * sin(theta)).toFloat()
+        newTag.spatialZ = (radius * cos(theta)).toFloat()
     }
 
     /**
@@ -131,11 +134,9 @@ class TagCloud(
             theta = acos((2.0 * i - 1.0) / max - 1)
             phi = sqrt(max * Math.PI) * theta
 
-            tagList[i - 1].theta = theta
-            tagList[i - 1].phi = phi
-            tagList[i - 1].spatialX = (xRadius * cos(phi) * sin(theta)).toFloat()
-            tagList[i - 1].spatialY = (yRadius * sin(phi) * sin(theta)).toFloat()
-            tagList[i - 1].spatialZ = (zRadius * cos(theta)).toFloat()
+            tagList[i - 1].spatialX = (radius * cos(phi) * sin(theta)).toFloat()
+            tagList[i - 1].spatialY = (radius * sin(phi) * sin(theta)).toFloat()
+            tagList[i - 1].spatialZ = (radius * cos(theta)).toFloat()
         }
     }
 
@@ -165,29 +166,31 @@ class TagCloud(
             tag.spatialY = ry3
             tag.spatialZ = rz2
 
-            // 计算透明度
+            // 计算缩放比
             val diameter = 2 * radius
-            val per = diameter / 1.0f / (diameter + rz2)
+            val per = diameter * scale / (diameter + rz2) / 2
             // let's set position, scale, alpha for the tag;
             tag.flatX = rx3 * per
             tag.flatY = ry3 * per
             tag.scale = per
-            // calculate alpha value
+
+            // 计算透明度
             val delta = diameter + rz2
             maxDelta = max(maxDelta, delta)
             minDelta = min(minDelta, delta)
-            val alpha = (delta - minDelta) / (maxDelta - minDelta)
-            tag.alpha = 1 - alpha
+            val alpha =
+                minAlpha + (delta - minDelta) / (maxDelta - minDelta) * (maxAlpha - minAlpha)
+            tag.opacity = 1 - alpha
         }
-        // sortTagByScale()
+        sortTagByScale()
     }
 
     private fun getColorFromGradient(percentage: Float): FloatArray {
         val rgba = FloatArray(4)
         rgba[0] = 1f
-        rgba[1] = percentage * darkColor[0] + (1f - percentage) * lightColor[0]
-        rgba[2] = percentage * darkColor[1] + (1f - percentage) * lightColor[1]
-        rgba[3] = percentage * darkColor[2] + (1f - percentage) * lightColor[2]
+        rgba[1] = percentage * lightColor[0] + (1f - percentage) * darkColor[0]
+        rgba[2] = percentage * lightColor[1] + (1f - percentage) * darkColor[1]
+        rgba[3] = percentage * lightColor[2] + (1f - percentage) * darkColor[2]
         return rgba
     }
 
@@ -212,8 +215,8 @@ class TagCloud(
     }
 
     fun setInertia(x: Float, y: Float) {
-        mInertiaX = 1f
-        mInertiaY = 1f
+        mInertiaX = x
+        mInertiaY = y
         mInertiaZ = 0f
     }
 

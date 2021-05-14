@@ -13,13 +13,15 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.*
 import androidx.annotation.IntDef
-import androidx.core.view.isGone
+import androidx.core.view.*
 import com.example.earthtaglib.adapter.TagAdapter
 import com.example.earthtaglib.bean.Tag
 import kotlin.math.abs
 import kotlin.math.min
+import kotlin.math.sqrt
 
 /**
+ *
  * @author kun
  * @since 5/12/21
  */
@@ -39,39 +41,78 @@ class EarthTagView @JvmOverloads constructor(
     annotation class Mode
 
 
+    //region private variable
     private var mSpeed = 2f
     private var mTagCloud: TagCloud = TagCloud()
     private var mInertiaX = 0.5f
     private var mInertiaY = 0.5f
     private var mCenterX = 0f
     private var mCenterY = 0f
-    private var mRadius = 0f
+    private var mRadius = 100f
     private var mRadiusPercent = 0.9f
     private var mDarkColor = floatArrayOf(1f, 0f, 0f, 1f) //rgba
     private var mLightColor = floatArrayOf(0.9412f, 0.7686f, 0.2f, 1f) //rgba
 
     private var manualScroll = false
 
-    @Mode
-    var autoScrollMode = MODE_UNIFORM
     private val mLayoutParams: MarginLayoutParams by lazy {
         layoutParams as MarginLayoutParams
     }
-    private var mMinSize = 0
+    private var viewInitialWidth = 0
+    private var viewInitialHeight = 0
     private var mIsOnTouch = false
     private val mHandler = Handler(Looper.getMainLooper())
     private lateinit var mAdapter: TagAdapter
-    var mOnTagClickListener: OnTagClickListener? = null
 
     private val sensorManager by lazy {
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     }
-    private val sensorEventListener = object : SensorEventListener {
-        override fun onSensorChanged(event: SensorEvent?) {
-            event?.values?.let {
-                it.forEachIndexed { index, fl ->
 
+    private val sensorEventListener = object : SensorEventListener {
+        private val maxVelocity = 1.2f
+        private val minVelocity = maxVelocity / 2
+        override fun onSensorChanged(event: SensorEvent?) {
+            if (setPause) return
+            event?.values?.let {
+                var axisX = if (abs(it[0]) < 0.03f) 0f else it[0]
+                var axisY = if (abs(it[1]) < 0.03f) 0f else it[1]
+
+                Log.d(TAG, "onSensorChanged x:$axisX y:$axisY")
+
+                val velocity = sqrt(axisX * axisX + axisY * axisY)
+                if (velocity < minVelocity) {
+                    when {
+                        axisX == 0f && axisY == 0f -> {
+                            axisX = 0.5f
+                            axisY = 0.5f
+                        }
+                        axisX == 0f -> axisY = minVelocity
+                        axisY == 0f -> axisX = minVelocity
+                        else -> {
+                            val k = axisY / axisX
+                            val absAxisX = sqrt(minVelocity * minVelocity / (k * k + 1))
+                            axisX = if (axisX > 0) absAxisX else -absAxisX
+                            axisY = k * axisX
+                        }
+                    }
+                } else if (velocity > maxVelocity) {
+                    when {
+                        axisX == 0f -> axisY = maxVelocity
+                        axisY == 0f -> axisX = maxVelocity
+                        else -> {
+                            val k = axisY / axisX
+                            val absAxisX = sqrt(maxVelocity * maxVelocity / (k * k + 1))
+                            axisX = if (axisX > 0) absAxisX else -absAxisX
+                            axisY = k * axisX
+                        }
+                    }
                 }
+
+                // Sensor的Y座标和View的Y座标相反
+                // mInertialX代表的是绕X轴旋转的角度，所以要用axisY赋值，mInertiaY同理
+                mInertiaX = axisY
+                mInertiaY = -axisX
+
             }
         }
 
@@ -79,14 +120,25 @@ class EarthTagView @JvmOverloads constructor(
 
         }
     }
+    //endregion
 
+    @Mode
+    var autoScrollMode = MODE_UNIFORM
+    var mOnTagClickListener: OnTagClickListener? = null
+    @Volatile
+    var setPause: Boolean = false
+        set(value) {
+            field = value
+            if (!value) {
+                mHandler.post(this)
+            }
+        }
 
     init {
         isFocusableInTouchMode = true
         attrs?.let {
             val typedArray = context.obtainStyledAttributes(it, R.styleable.EarthTagView)
-            val m = typedArray.getString(R.styleable.EarthTagView_autoScrollMode) ?: "0"
-            autoScrollMode = Integer.valueOf(m)
+            autoScrollMode = typedArray.getInteger(R.styleable.EarthTagView_autoScrollMode, MODE_UNIFORM)
             setManualScroll(typedArray.getBoolean(R.styleable.EarthTagView_manualScroll, false))
             mInertiaX = typedArray.getFloat(R.styleable.EarthTagView_startAngleX, 0.5f)
             mInertiaY = typedArray.getFloat(R.styleable.EarthTagView_startAngleY, 0.5f)
@@ -106,7 +158,15 @@ class EarthTagView @JvmOverloads constructor(
         Log.d("EarthTagView", "screenWidth - point : ${point.x}")
         val screenWidth = point.x
         val screenHeight = point.y
-        mMinSize = if (screenHeight < screenWidth) screenHeight else screenWidth
+        if (screenWidth < screenHeight) {
+            viewInitialWidth = screenWidth
+            viewInitialHeight = screenWidth
+        } else {
+            viewInitialWidth = screenHeight
+            viewInitialHeight = screenHeight
+        }
+
+
     }
 
     fun setAdapter(adapter: TagAdapter) {
@@ -148,8 +208,8 @@ class EarthTagView @JvmOverloads constructor(
     private fun initFromAdapter() {
         postDelayed({
             mCenterX = ((right - left) / 2).toFloat()
-            mCenterY = ((bottom - top) / 2).toFloat()
-            mRadius = min(mCenterX * mRadiusPercent, mCenterY * mRadiusPercent)
+            mCenterY = bottom.toFloat()
+            mRadius = min(mCenterX * mRadiusPercent, mCenterY * 2 * mRadiusPercent)
             mTagCloud.radius = mRadius.toInt()
             mTagCloud.setTagColorLight(mLightColor) //higher color
             mTagCloud.setTagColorDark(mDarkColor) //lower color
@@ -158,6 +218,7 @@ class EarthTagView @JvmOverloads constructor(
             for (i in 0 until mAdapter.getCount()) {
                 //binding view to each tag
                 val view: View = mAdapter.getView(this, i)
+                Log.d(TAG, "initFromAdapter textView size - width:${view.measuredWidth} height:${view.height} ")
                 val tag = Tag(view, popularity = mAdapter.getPopularity(i))
                 mTagCloud.add(tag)
                 addListener(view, i)
@@ -198,6 +259,7 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        Log.d(TAG, "onMeasure ---")
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val contentWidth = MeasureSpec.getSize(widthMeasureSpec)
         val contentHeight = MeasureSpec.getSize(heightMeasureSpec)
@@ -206,10 +268,10 @@ class EarthTagView @JvmOverloads constructor(
 
         val dimensionX =
             if (widthMode == MeasureSpec.EXACTLY) contentWidth
-            else mMinSize - mLayoutParams.leftMargin - mLayoutParams.rightMargin
+            else viewInitialWidth - mLayoutParams.leftMargin - mLayoutParams.rightMargin
         val dimensionY =
             if (heightMode == MeasureSpec.EXACTLY) contentHeight
-            else mMinSize - mLayoutParams.leftMargin - mLayoutParams.rightMargin
+            else viewInitialHeight - mLayoutParams.topMargin - mLayoutParams.bottomMargin
         setMeasuredDimension(dimensionX, dimensionY)
         measureChildren(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
     }
@@ -235,7 +297,7 @@ class EarthTagView @JvmOverloads constructor(
             val tag: Tag = mTagCloud[i]
             child?.let {
                 if (child.isGone.not()) {
-                    mAdapter.onThemeColorChanged(child, tag.getColor(), tag.alpha)
+                    mAdapter.onThemeColorChanged(child, tag.getColor(), tag.opacity)
                     child.scaleX = tag.scale
                     child.scaleY = tag.scale
                     val left: Int = (mCenterX + tag.flatX).toInt() - child.measuredWidth / 2
@@ -328,7 +390,9 @@ class EarthTagView @JvmOverloads constructor(
             }
             processTouch()
         }
-        mHandler.postDelayed(this, 15)
+        if (!setPause) {
+            mHandler.postDelayed(this, 15)
+        }
     }
 
     interface OnTagClickListener {
