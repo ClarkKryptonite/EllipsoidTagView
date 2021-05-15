@@ -41,7 +41,7 @@ class EarthTagView @JvmOverloads constructor(
     annotation class Mode
 
 
-    //region private variable
+    //region 私有变量
     private var mSpeed = 2f
     private var mTagCloud: TagCloud = TagCloud()
     private var mInertiaX = 0.5f
@@ -49,9 +49,8 @@ class EarthTagView @JvmOverloads constructor(
     private var mCenterX = 0f
     private var mCenterY = 0f
     private var mRadius = 100f
-    private var mRadiusPercent = 0.9f
-    private var mDarkColor = floatArrayOf(1f, 0f, 0f, 1f) //rgba
-    private var mLightColor = floatArrayOf(0.9412f, 0.7686f, 0.2f, 1f) //rgba
+    private var mDarkColor = DEFAULT_COLOR_DARK //rgba
+    private var mLightColor = DEFAULT_COLOR_LIGHT //rgba
 
     private var manualScroll = false
 
@@ -69,15 +68,11 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     private val sensorEventListener = object : SensorEventListener {
-        private val maxVelocity = 1.2f
-        private val minVelocity = maxVelocity / 2
         override fun onSensorChanged(event: SensorEvent?) {
             if (setPause) return
             event?.values?.let {
                 var axisX = if (abs(it[0]) < 0.03f) 0f else it[0]
                 var axisY = if (abs(it[1]) < 0.03f) 0f else it[1]
-
-                Log.d(TAG, "onSensorChanged x:$axisX y:$axisY")
 
                 val velocity = sqrt(axisX * axisX + axisY * axisY)
                 if (velocity < minVelocity) {
@@ -122,9 +117,36 @@ class EarthTagView @JvmOverloads constructor(
     }
     //endregion
 
+    //region 属性变量
     @Mode
     var autoScrollMode = MODE_UNIFORM
     var mOnTagClickListener: OnTagClickListener? = null
+    var radiusPercent = 0.9f
+        set(value) {
+            require(!(value > 1f || value < 0f)) { "percent value not in range 0 to 1" }
+            mRadius = min(mCenterX * value, mCenterY * 2 * value)
+            mTagCloud.radius = mRadius.toInt()
+            field = value
+        }
+    var deltaScale = 1f
+        set(value) {
+            require(1f <= value) { "scale must equal or greater than 1.0" }
+            mTagCloud.scale = value
+            field = value
+        }
+    var minAlpha = 0.1f
+        set(value) {
+            require(value in 0f..1f) { "alpha must between 0f and 1f " }
+            mTagCloud.minAlpha = value
+            field = value
+        }
+    var maxAlpha = 0.1f
+        set(value) {
+            require(value in 0f..1f) { "alpha must between 0f and 1f " }
+            mTagCloud.maxAlpha = value
+            field = value
+        }
+
     @Volatile
     var setPause: Boolean = false
         set(value) {
@@ -134,28 +156,42 @@ class EarthTagView @JvmOverloads constructor(
             }
         }
 
+    @Volatile
+    var minVelocity = DEFAULT_MIN_VELOCITY
+        set(value) {
+            require(value > 0f) { "min velocity must greater than 0" }
+            field = value
+        }
+
+    @Volatile
+    var maxVelocity = DEFAULT_MAX_VELOCITY
+        set(value) {
+            require(value > minVelocity) { "max velocity must greater than minVelocity:$minVelocity" }
+            field = value
+        }
+    //endregion
+
     init {
         isFocusableInTouchMode = true
         attrs?.let {
             val typedArray = context.obtainStyledAttributes(it, R.styleable.EarthTagView)
-            autoScrollMode = typedArray.getInteger(R.styleable.EarthTagView_autoScrollMode, MODE_UNIFORM)
-            setManualScroll(typedArray.getBoolean(R.styleable.EarthTagView_manualScroll, false))
-            mInertiaX = typedArray.getFloat(R.styleable.EarthTagView_startAngleX, 0.5f)
-            mInertiaY = typedArray.getFloat(R.styleable.EarthTagView_startAngleY, 0.5f)
+            autoScrollMode =
+                typedArray.getInteger(R.styleable.EarthTagView_autoScrollMode, MODE_UNIFORM)
             val light = typedArray.getColor(R.styleable.EarthTagView_lightColor, Color.WHITE)
             setLightColor(light)
             val dark = typedArray.getColor(R.styleable.EarthTagView_darkColor, Color.BLACK)
             setDarkColor(dark)
-            val p = typedArray.getFloat(R.styleable.EarthTagView_radiusPercent, mRadiusPercent)
-            setRadiusPercent(p)
-            val s = typedArray.getFloat(R.styleable.EarthTagView_scrollSpeed, 2f)
-            setScrollSpeed(s)
+            radiusPercent =
+                typedArray.getFloat(R.styleable.EarthTagView_radiusPercent, DEFAULT_PERCENT)
+            deltaScale = typedArray.getFloat(R.styleable.EarthTagView_scale, DEFAULT_DELTA_SCALE)
+            minAlpha = typedArray.getFloat(R.styleable.EarthTagView_minAlpha, DEFAULT_MIN_ALPHA)
+            maxAlpha = typedArray.getFloat(R.styleable.EarthTagView_maxAlpha, DEFAULT_MAX_ALPHA)
+
             typedArray.recycle()
         }
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val point = Point()
         wm.defaultDisplay.getSize(point)
-        Log.d("EarthTagView", "screenWidth - point : ${point.x}")
         val screenWidth = point.x
         val screenHeight = point.y
         if (screenWidth < screenHeight) {
@@ -165,18 +201,12 @@ class EarthTagView @JvmOverloads constructor(
             viewInitialWidth = screenHeight
             viewInitialHeight = screenHeight
         }
-
-
+        initFromAdapter()
     }
 
     fun setAdapter(adapter: TagAdapter) {
         mAdapter = adapter
         mAdapter.onDataSetChangeListener = this
-        onChange()
-    }
-
-    fun setManualScroll(manualScroll: Boolean) {
-        this.manualScroll = manualScroll
     }
 
     fun setLightColor(color: Int) {
@@ -186,7 +216,7 @@ class EarthTagView @JvmOverloads constructor(
         argb[1] = Color.green(color) / 1.0f / 0xff
         argb[2] = Color.blue(color) / 1.0f / 0xff
         mLightColor = argb.clone()
-        onChange()
+        mTagCloud.lightColor = mLightColor //higher color
     }
 
     fun setDarkColor(color: Int) {
@@ -196,29 +226,23 @@ class EarthTagView @JvmOverloads constructor(
         argb[1] = Color.green(color) / 1.0f / 0xff
         argb[2] = Color.blue(color) / 1.0f / 0xff
         mDarkColor = argb.clone()
-        onChange()
-    }
-
-    fun setRadiusPercent(percent: Float) {
-        require(!(percent > 1f || percent < 0f)) { "percent value not in range 0 to 1" }
-        mRadiusPercent = percent
-        onChange()
+        mTagCloud.darkColor = mDarkColor //lower color
     }
 
     private fun initFromAdapter() {
+        if (this::mAdapter.isInitialized) {
+            throw NoSuchElementException("No adapter attached")
+        }
         postDelayed({
             mCenterX = ((right - left) / 2).toFloat()
             mCenterY = bottom.toFloat()
-            mRadius = min(mCenterX * mRadiusPercent, mCenterY * 2 * mRadiusPercent)
+            mRadius = min(mCenterX * radiusPercent, mCenterY * 2 * radiusPercent)
             mTagCloud.radius = mRadius.toInt()
-            mTagCloud.setTagColorLight(mLightColor) //higher color
-            mTagCloud.setTagColorDark(mDarkColor) //lower color
             mTagCloud.clear()
             removeAllViews()
             for (i in 0 until mAdapter.getCount()) {
                 //binding view to each tag
                 val view: View = mAdapter.getView(this, i)
-                Log.d(TAG, "initFromAdapter textView size - width:${view.measuredWidth} height:${view.height} ")
                 val tag = Tag(view, popularity = mAdapter.getPopularity(i))
                 mTagCloud.add(tag)
                 addListener(view, i)
@@ -241,15 +265,6 @@ class EarthTagView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * 设置触摸时最初的移动速度
-     *
-     * @param scrollSpeed 对应速度值
-     */
-    fun setScrollSpeed(scrollSpeed: Float) {
-        mSpeed = scrollSpeed
-    }
-
     private fun resetChildren() {
         removeAllViews()
         //必须保证getChildAt(i) == mTagCloud.getTagList().get(i)
@@ -259,7 +274,6 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        Log.d(TAG, "onMeasure ---")
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
         val contentWidth = MeasureSpec.getSize(widthMeasureSpec)
         val contentHeight = MeasureSpec.getSize(heightMeasureSpec)
@@ -400,10 +414,9 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     companion object {
-        private const val TAG = "EarthTagView"
         private const val TOUCH_SCALE_FACTOR = 0.8f
-        const val MODE_DISABLE = 0
-        const val MODE_DECELERATE = 1
-        const val MODE_UNIFORM = 2
+        private const val MODE_DISABLE = 0
+        private const val MODE_DECELERATE = 1
+        private const val MODE_UNIFORM = 2
     }
 }

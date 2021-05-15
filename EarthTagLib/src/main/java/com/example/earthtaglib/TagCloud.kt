@@ -18,20 +18,6 @@ class TagCloud(
     var darkColor: FloatArray = DEFAULT_COLOR_DARK
 ) {
 
-    companion object {
-        /**
-         * 旋转单位，默认为一度,弧度制
-         */
-        private const val ROTATE_DEGREE_UNIT = Math.PI / 180
-        private const val DEFAULT_RADIUS = 300
-        private const val DEFAULT_DELTA_SCALE = 1.5f
-        private const val DEFAULT_MIN_ALPHA = 0f
-        private const val DEFAULT_MAX_ALPHA = 0.7f
-
-        private val DEFAULT_COLOR_LIGHT = floatArrayOf(0.886f, 0.725f, 0.188f, 1f)
-        private val DEFAULT_COLOR_DARK = floatArrayOf(0.3f, 0.3f, 0.3f, 1f)
-    }
-
     private var mSinX = 0f
     private var mCosX = 0f
 
@@ -42,11 +28,6 @@ class TagCloud(
     private var mCosZ = 0f
 
     /**
-     * x-y座标系下旋转角度，弧度制
-     */
-    private var rotateDegree = Math.PI / 4
-
-    /**
      * 每次绕屏幕x轴旋转的角度
      */
     private var mInertiaX = 0f
@@ -55,6 +36,10 @@ class TagCloud(
      * 每次绕屏幕y轴旋转的角度
      */
     private var mInertiaY = 0f
+
+    /**
+     * 每次绕屏幕z轴旋转的角度
+     */
     private var mInertiaZ = 0f
 
     private var mMinPopularity = 0
@@ -143,43 +128,44 @@ class TagCloud(
     private var maxDelta = 0f
     private var minDelta = 0f
 
+    /**
+     * EarthTagView的核心算法
+     *
+     * 计算旋转后座标，缩放倍数，透明度
+     */
     private fun updateAll() {
-
-        //update transparency/scale for all tags:
         for (tag in tagList) {
             val x: Float = tag.spatialX
             val y: Float = tag.spatialY
             val z: Float = tag.spatialZ
 
-            //There exists two options for this part:
-            // multiply positions by a x-rotation matrix
+            // 绕X-轴旋转
             val ry1 = y * mCosX - z * mSinX
             val rz1 = y * mSinX + z * mCosX
-            // multiply new positions by a y-rotation matrix
+            // 绕Y-轴旋转
             val rx2 = x * mCosY - rz1 * mSinY
             val rz2 = x * mSinY + rz1 * mCosY
-            // multiply new positions by a z-rotation matrix
+            // 绕Z-轴旋转
             val rx3 = rx2 * mCosZ - ry1 * mSinZ
             val ry3 = rx2 * mSinZ + ry1 * mCosZ
-            // set arrays to new positions
+            // 设置新的3D座标
             tag.spatialX = rx3
             tag.spatialY = ry3
             tag.spatialZ = rz2
-
             // 计算缩放比
             val diameter = 2 * radius
             val per = diameter * scale / (diameter + rz2) / 2
-            // let's set position, scale, alpha for the tag;
-            tag.flatX = rx3 * per
-            tag.flatY = ry3 * per
-            tag.scale = per
-
             // 计算透明度
             val delta = diameter + rz2
             maxDelta = max(maxDelta, delta)
             minDelta = min(minDelta, delta)
             val alpha =
                 minAlpha + (delta - minDelta) / (maxDelta - minDelta) * (maxAlpha - minAlpha)
+
+            // 更新tag属性
+            tag.flatX = rx3 * per
+            tag.flatY = ry3 * per
+            tag.scale = per
             tag.opacity = 1 - alpha
         }
         sortTagByScale()
@@ -206,18 +192,9 @@ class TagCloud(
         mCosZ = cos(mInertiaZ * ROTATE_DEGREE_UNIT).toFloat()
     }
 
-    fun setTagColorLight(tagColor: FloatArray) {
-        lightColor = tagColor
-    }
-
-    fun setTagColorDark(tagColorDark: FloatArray) {
-        darkColor = tagColorDark
-    }
-
     fun setInertia(x: Float, y: Float) {
         mInertiaX = x
         mInertiaY = y
-        mInertiaZ = 0f
     }
 
     private fun sortTagByScale() {

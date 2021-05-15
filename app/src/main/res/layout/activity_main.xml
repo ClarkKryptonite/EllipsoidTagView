@@ -10,6 +10,7 @@
         android:id="@+id/earth_layout"
         android:layout_width="match_parent"
         android:layout_height="200dp"
+        android:layout_margin="10dp"
         android:background="@drawable/bg_earth"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -24,8 +25,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:lightColor="@android:color/white"
-            app:scrollSpeed="3" />
+            app:lightColor="@android:color/white" />
 
         <TextView
             android:id="@+id/tag_title"
