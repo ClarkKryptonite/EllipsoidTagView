@@ -166,9 +166,9 @@ class TagCloud(
             tag.flatX = rx3 * per
             tag.flatY = ry3 * per
             tag.scale = per
+            tag.view.tag = per > 1f
             tag.opacity = 1 - alpha
         }
-        sortTagByScale()
     }
 
     private fun getColorFromGradient(percentage: Float): FloatArray {
@@ -195,10 +195,6 @@ class TagCloud(
     fun setInertia(x: Float, y: Float) {
         mInertiaX = x
         mInertiaY = y
-    }
-
-    private fun sortTagByScale() {
-        tagList.sort()
     }
 
     private fun calculatePopularity() {

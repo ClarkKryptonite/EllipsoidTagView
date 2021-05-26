@@ -6,8 +6,12 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.buildSpannedString
+import com.example.earthtaglib.EarthTagView
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -26,6 +30,11 @@ class MainActivity : AppCompatActivity() {
         val adapter = WhiteTextTagAdapter(textList)
         earth_tag.apply {
             setAdapter(adapter)
+        }
+        earth_tag.mOnTagClickListener = object : EarthTagView.OnTagClickListener {
+            override fun onItemClick(parent: ViewGroup?, view: View?, position: Int) {
+                Toast.makeText(this@MainActivity, textList[position], Toast.LENGTH_SHORT).show()
+            }
         }
 
         val title = arrayListOf<String>().apply {
@@ -62,6 +71,8 @@ class MainActivity : AppCompatActivity() {
             setPause = !setPause
             earth_tag.setPause = setPause
         }
+
+
     }
 
 }

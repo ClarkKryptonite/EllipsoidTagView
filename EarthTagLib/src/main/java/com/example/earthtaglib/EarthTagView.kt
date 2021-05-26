@@ -10,7 +10,6 @@ import android.hardware.SensorManager
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
-import android.util.Log
 import android.view.*
 import androidx.annotation.IntDef
 import androidx.core.view.*
@@ -249,6 +248,9 @@ class EarthTagView @JvmOverloads constructor(
             }
             mTagCloud.setInertia(mInertiaX, mInertiaY)
             mTagCloud.create()
+            for (tag in mTagCloud.tagList) {
+                addView(tag.view)
+            }
             resetChildren()
         }, 0)
     }
@@ -256,21 +258,19 @@ class EarthTagView @JvmOverloads constructor(
     private fun addListener(view: View, position: Int) {
         if (!view.hasOnClickListeners()) {
             view.setOnClickListener { v ->
-                mOnTagClickListener?.onItemClick(
-                    this@EarthTagView,
-                    v,
-                    position
-                )
+                if (v.tag as? Boolean != false) {
+                    mOnTagClickListener?.onItemClick(
+                        this@EarthTagView,
+                        v,
+                        position
+                    )
+                }
             }
         }
     }
 
     private fun resetChildren() {
-        removeAllViews()
-        //必须保证getChildAt(i) == mTagCloud.getTagList().get(i)
-        for (tag in mTagCloud.tagList) {
-            addView(tag.view)
-        }
+        requestLayout()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -338,7 +338,7 @@ class EarthTagView @JvmOverloads constructor(
         if (manualScroll) {
             handleTouchEvent(e)
         }
-        return true
+        return super.onTouchEvent(e)
     }
 
     private var downX = 0f
