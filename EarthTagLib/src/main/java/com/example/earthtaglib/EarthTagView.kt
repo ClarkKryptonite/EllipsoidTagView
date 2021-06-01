@@ -77,8 +77,8 @@ class EarthTagView @JvmOverloads constructor(
                 if (velocity < minVelocity) {
                     when {
                         axisX == 0f && axisY == 0f -> {
-                            axisX = 0.5f
-                            axisY = 0.5f
+                            axisX = sqrt(2f) * minVelocity / 2
+                            axisY = axisX
                         }
                         axisX == 0f -> axisY = minVelocity
                         axisY == 0f -> axisX = minVelocity
@@ -185,6 +185,10 @@ class EarthTagView @JvmOverloads constructor(
             deltaScale = typedArray.getFloat(R.styleable.EarthTagView_scale, DEFAULT_DELTA_SCALE)
             minAlpha = typedArray.getFloat(R.styleable.EarthTagView_minAlpha, DEFAULT_MIN_ALPHA)
             maxAlpha = typedArray.getFloat(R.styleable.EarthTagView_maxAlpha, DEFAULT_MAX_ALPHA)
+            minVelocity =
+                typedArray.getFloat(R.styleable.EarthTagView_minVelocity, DEFAULT_MIN_VELOCITY)
+            maxVelocity =
+                typedArray.getFloat(R.styleable.EarthTagView_maxVelocity, DEFAULT_MAX_VELOCITY)
 
             typedArray.recycle()
         }

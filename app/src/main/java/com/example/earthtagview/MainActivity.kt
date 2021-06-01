@@ -1,17 +1,20 @@
 package com.example.earthtagview
 
 import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.RelativeSizeSpan
+import android.text.style.StyleSpan
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.buildSpannedString
 import com.example.earthtaglib.EarthTagView
+import com.example.earthtagview.span.FakeBoldSpan
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -48,6 +51,8 @@ class MainActivity : AppCompatActivity() {
             append(SpannableString(title[0]).apply {
                 setSpan(RelativeSizeSpan(1.6f), 0, title[0].length, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
                 setSpan(ForegroundColorSpan(Color.parseColor("#ff9900")), 0, title[0].length, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
+                setSpan(FakeBoldSpan(),0, title[0].length, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
+                setSpan(StyleSpan(Typeface.ITALIC), 0, length, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)
             })
             append(SpannableString(title[1]).apply {
                 setSpan(RelativeSizeSpan(1.2f), 0, title[1].length, Spanned.SPAN_INCLUSIVE_EXCLUSIVE)

@@ -25,7 +25,10 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:lightColor="@android:color/white" />
+            app:lightColor="@android:color/white"
+            app:maxVelocity="0.3"
+            app:minVelocity="0.2"
+            app:radiusPercent="0.95" />
 
         <TextView
             android:id="@+id/tag_title"
