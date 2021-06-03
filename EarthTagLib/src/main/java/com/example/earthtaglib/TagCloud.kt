@@ -65,15 +65,9 @@ class TagCloud(
 
     operator fun get(position: Int): Tag = tagList[position]
 
-    fun reset() {
-        create()
-    }
-
     fun update() {
-        if (abs(mInertiaX) > 0.1f || abs(mInertiaY) > 0.1f) {
-            recalculateAngle()
-            updateAll()
-        }
+        recalculateAngle()
+        updateAll()
     }
 
     /**
@@ -163,10 +157,9 @@ class TagCloud(
                 minAlpha + (delta - minDelta) / (maxDelta - minDelta) * (maxAlpha - minAlpha)
 
             // 更新tag属性
-            tag.flatX = rx3 * per
-            tag.flatY = ry3 * per
+            tag.flatX = rx3
+            tag.flatY = ry3
             tag.scale = per
-            tag.view.tag = per > 1f
             tag.opacity = 1 - alpha
         }
     }

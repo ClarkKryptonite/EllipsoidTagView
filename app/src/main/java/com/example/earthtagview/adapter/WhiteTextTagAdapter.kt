@@ -1,4 +1,4 @@
-package com.example.earthtagview
+package com.example.earthtagview.adapter
 
 import android.view.Gravity
 import android.view.View

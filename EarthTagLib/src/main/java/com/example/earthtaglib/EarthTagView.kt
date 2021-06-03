@@ -8,7 +8,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Handler
-import android.os.Looper
+import android.os.HandlerThread
 import android.util.AttributeSet
 import android.view.*
 import androidx.annotation.IntDef
@@ -59,8 +59,12 @@ class EarthTagView @JvmOverloads constructor(
     private var viewInitialWidth = 0
     private var viewInitialHeight = 0
     private var mIsOnTouch = false
-    private val mHandler = Handler(Looper.getMainLooper())
     private lateinit var mAdapter: TagAdapter
+    private val dataHandleThread = HandlerThread("View")
+    private val mHandler by lazy {
+        dataHandleThread.start()
+        Handler(dataHandleThread.looper)
+    }
 
     private val sensorManager by lazy {
         context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -236,7 +240,7 @@ class EarthTagView @JvmOverloads constructor(
         if (this::mAdapter.isInitialized) {
             throw NoSuchElementException("No adapter attached")
         }
-        postDelayed({
+        post {
             mCenterX = ((right - left) / 2).toFloat()
             mCenterY = bottom.toFloat()
             mRadius = min(mCenterX * radiusPercent, mCenterY * 2 * radiusPercent)
@@ -246,23 +250,22 @@ class EarthTagView @JvmOverloads constructor(
             for (i in 0 until mAdapter.getCount()) {
                 //binding view to each tag
                 val view: View = mAdapter.getView(this, i)
-                val tag = Tag(view, popularity = mAdapter.getPopularity(i))
+                val tag = Tag(popularity = mAdapter.getPopularity(i), position = i)
                 mTagCloud.add(tag)
                 addListener(view, i)
+                addView(view)
             }
             mTagCloud.setInertia(mInertiaX, mInertiaY)
             mTagCloud.create()
-            for (tag in mTagCloud.tagList) {
-                addView(tag.view)
-            }
             resetChildren()
-        }, 0)
+        }
     }
 
     private fun addListener(view: View, position: Int) {
         if (!view.hasOnClickListeners()) {
             view.setOnClickListener { v ->
-                if (v.tag as? Boolean != false) {
+                val pos = v.tag as? Int
+                if (pos != null && mTagCloud[pos].scale >= deltaScale) {
                     mOnTagClickListener?.onItemClick(
                         this@EarthTagView,
                         v,
@@ -274,7 +277,7 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     private fun resetChildren() {
-        requestLayout()
+        post { setAllViewPosition() }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -294,6 +297,10 @@ class EarthTagView @JvmOverloads constructor(
         measureChildren(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED)
     }
 
+    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
+        setAllViewPosition()
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         sensorManager.registerListener(
@@ -309,26 +316,18 @@ class EarthTagView @JvmOverloads constructor(
         mHandler.removeCallbacksAndMessages(null)
     }
 
-    override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        for (i in 0 until childCount) {
-            val child = getChildAt(i)
-            val tag: Tag = mTagCloud[i]
-            child?.let {
-                if (child.isGone.not()) {
-                    mAdapter.onThemeColorChanged(child, tag.getColor(), tag.opacity)
-                    child.scaleX = tag.scale
-                    child.scaleY = tag.scale
-                    val left: Int = (mCenterX + tag.flatX).toInt() - child.measuredWidth / 2
-                    val top: Int = (mCenterY + tag.flatY).toInt() - child.measuredHeight / 2
-                    child.layout(left, top, left + child.measuredWidth, top + child.measuredHeight)
-                }
-            }
+    private fun setAllViewPosition() {
+        val iterator = mTagCloud.tagList.iterator()
+        while (iterator.hasNext()) {
+            val tag = iterator.next()
+            val child = getChildAt(tag.position)
+            mAdapter.onThemeColorChanged(child, tag.getColor(), tag.opacity)
+            child.scaleX = tag.scale
+            child.scaleY = tag.scale
+            val left: Int = (mCenterX + tag.flatX).toInt() - child.measuredWidth / 2
+            val top: Int = (mCenterY + tag.flatY).toInt() - child.measuredHeight / 2
+            child.layout(left, top, left + child.measuredWidth, top + child.measuredHeight)
         }
-    }
-
-    fun reset() {
-        mTagCloud.reset()
-        resetChildren()
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
@@ -409,7 +408,7 @@ class EarthTagView @JvmOverloads constructor(
             processTouch()
         }
         if (!setPause) {
-            mHandler.postDelayed(this, 15)
+            mHandler.postDelayed(this, 20)
         }
     }
 

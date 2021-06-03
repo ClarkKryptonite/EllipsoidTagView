@@ -14,6 +14,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.text.buildSpannedString
 import com.example.earthtaglib.EarthTagView
+import com.example.earthtagview.adapter.ImageAdapter
+import com.example.earthtagview.adapter.WhiteTextTagAdapter
 import com.example.earthtagview.span.FakeBoldSpan
 import kotlinx.android.synthetic.main.activity_main.*
 
@@ -26,14 +28,28 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val num = 30
+
+        // text adapter
         val textList = arrayListOf<String>()
         for (i in 1..num) {
-            textList.add("技术关键词$i")
+            textList.add("关键词$i")
         }
         val adapter = WhiteTextTagAdapter(textList)
+
+        // image adapter
+        val resIdList = arrayListOf<Int>().apply {
+            for (i in 1..10) {
+                add(R.drawable.text_img_android)
+                add(R.drawable.text_img_java_base)
+                add(R.drawable.text_img_tools)
+            }
+        }
+        val imageAdapter = ImageAdapter(resIdList)
+
         earth_tag.apply {
             setAdapter(adapter)
         }
+
         earth_tag.mOnTagClickListener = object : EarthTagView.OnTagClickListener {
             override fun onItemClick(parent: ViewGroup?, view: View?, position: Int) {
                 Toast.makeText(this@MainActivity, textList[position], Toast.LENGTH_SHORT).show()

@@ -8,7 +8,6 @@ import android.view.View
  *
  * 每个Tag的信息，其中spatialX和spatialY对应View的座标系，z轴座标系往屏幕里是正值
  *
- * @param view 每个tag绑定的View
  * @param spatialX 3D空间中x座标
  * @param spatialY 3D空间中y座标
  * @param spatialZ 3D空间中z座标
@@ -19,12 +18,12 @@ import android.view.View
  * @since 5/12/21
  */
 class Tag(
-    var view: View,
     var spatialX: Float = 0f,
     var spatialY: Float = 0f,
     var spatialZ: Float = 0f,
     var scale: Float = 1f,
-    var popularity: Int = 5
+    var popularity: Int = 5,
+    var position: Int
 ) : Comparable<Tag> {
 
     /**
