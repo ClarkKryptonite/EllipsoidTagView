@@ -9,7 +9,7 @@ import com.example.earthtaglib.adapter.TagAdapter
  * @author kun
  * @since 2021-Jun-02
  */
-class ImageAdapter(val resIdList:MutableList<Int>) : TagAdapter() {
+class ImageAdapter(val resIdList: MutableList<Int>) : TagAdapter() {
     override fun getCount(): Int {
         return resIdList.size
     }

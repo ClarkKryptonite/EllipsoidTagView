@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     tools:context=".MainActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -26,9 +26,10 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:lightColor="@android:color/white"
+            android:background="@android:color/transparent"
             app:maxVelocity="0.3"
             app:minVelocity="0.2"
-            app:radiusPercent="0.95" />
+            app:radiusPercent="0.8" />
 
         <TextView
             android:id="@+id/tag_title"
@@ -47,10 +48,34 @@
         android:id="@+id/toggle_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="toggle"
+        android:text="Toggle"
+        android:textAllCaps="false"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/earth_layout"
+        tools:ignore="HardcodedText" />
+
+    <Button
+        android:id="@+id/toggle_scale"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="EnableScale"
+        android:textAllCaps="false"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toggle_button"
+        tools:ignore="HardcodedText" />
+
+    <TextView
+        android:id="@+id/id_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="常用工具类"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toggle_button"
         tools:ignore="HardcodedText" />
 
 

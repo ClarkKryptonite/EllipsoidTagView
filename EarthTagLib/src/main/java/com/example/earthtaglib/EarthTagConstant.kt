@@ -7,7 +7,7 @@ package com.example.earthtaglib
 /**
  * 旋转单位，默认为一度,弧度制
  */
-const val ROTATE_DEGREE_UNIT = Math.PI / 90
+const val ROTATE_DEGREE_UNIT = Math.PI / 360
 const val DEFAULT_RADIUS = 300
 const val DEFAULT_PERCENT = 0.9f
 const val DEFAULT_DELTA_SCALE = 1.5f

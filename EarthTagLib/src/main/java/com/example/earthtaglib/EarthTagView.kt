@@ -1,8 +1,7 @@
 package com.example.earthtaglib
 
 import android.content.Context
-import android.graphics.Color
-import android.graphics.Point
+import android.graphics.*
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -15,9 +14,7 @@ import androidx.annotation.IntDef
 import androidx.core.view.*
 import com.example.earthtaglib.adapter.TagAdapter
 import com.example.earthtaglib.bean.Tag
-import kotlin.math.abs
-import kotlin.math.min
-import kotlin.math.sqrt
+import kotlin.math.*
 
 /**
  *
@@ -128,7 +125,7 @@ class EarthTagView @JvmOverloads constructor(
         set(value) {
             require(!(value > 1f || value < 0f)) { "percent value not in range 0 to 1" }
             mRadius = min(mCenterX * value, mCenterY * 2 * value)
-            mTagCloud.radius = mRadius.toInt()
+            mTagCloud.radius = mRadius.roundToInt()
             field = value
         }
     var deltaScale = 1f
@@ -244,7 +241,7 @@ class EarthTagView @JvmOverloads constructor(
             mCenterX = ((right - left) / 2).toFloat()
             mCenterY = bottom.toFloat()
             mRadius = min(mCenterX * radiusPercent, mCenterY * 2 * radiusPercent)
-            mTagCloud.radius = mRadius.toInt()
+            mTagCloud.radius = mRadius.roundToInt()
             mTagCloud.clear()
             removeAllViews()
             for (i in 0 until mAdapter.getCount()) {
@@ -277,7 +274,7 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     private fun resetChildren() {
-        post { setAllViewPosition() }
+        post { setChildrenPosition() }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -298,7 +295,7 @@ class EarthTagView @JvmOverloads constructor(
     }
 
     override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
-        setAllViewPosition()
+        setChildrenPosition()
     }
 
     override fun onAttachedToWindow() {
@@ -316,7 +313,7 @@ class EarthTagView @JvmOverloads constructor(
         mHandler.removeCallbacksAndMessages(null)
     }
 
-    private fun setAllViewPosition() {
+    private fun setChildrenPosition() {
         val iterator = mTagCloud.tagList.iterator()
         while (iterator.hasNext()) {
             val tag = iterator.next()
@@ -324,8 +321,9 @@ class EarthTagView @JvmOverloads constructor(
             mAdapter.onThemeColorChanged(child, tag.getColor(), tag.opacity)
             child.scaleX = tag.scale
             child.scaleY = tag.scale
-            val left: Int = (mCenterX + tag.flatX).toInt() - child.measuredWidth / 2
-            val top: Int = (mCenterY + tag.flatY).toInt() - child.measuredHeight / 2
+            child.z = tag.scale
+            val left = (mCenterX + tag.flatX).roundToInt() - child.measuredWidth / 2
+            val top = (mCenterY + tag.flatY).roundToInt() - child.measuredHeight / 2
             child.layout(left, top, left + child.measuredWidth, top + child.measuredHeight)
         }
     }
@@ -408,7 +406,7 @@ class EarthTagView @JvmOverloads constructor(
             processTouch()
         }
         if (!setPause) {
-            mHandler.postDelayed(this, 20)
+            mHandler.postDelayed(this, REFRESH_INTERVAL)
         }
     }
 
@@ -421,5 +419,6 @@ class EarthTagView @JvmOverloads constructor(
         private const val MODE_DISABLE = 0
         private const val MODE_DECELERATE = 1
         private const val MODE_UNIFORM = 2
+        private const val REFRESH_INTERVAL = 10L
     }
 }
