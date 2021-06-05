@@ -8,7 +8,7 @@ import kotlin.math.*
  * @author kun
  * @since 5/12/21
  */
-class TagCloud(
+internal class TagCloud(
     val tagList: MutableList<Tag> = arrayListOf(),
     var radius: Int = DEFAULT_RADIUS,
     var scale: Float = DEFAULT_DELTA_SCALE,
@@ -17,6 +17,11 @@ class TagCloud(
     var lightColor: FloatArray = DEFAULT_COLOR_LIGHT,
     var darkColor: FloatArray = DEFAULT_COLOR_DARK
 ) {
+
+    companion object {
+        // 为了保证Banner中EarthHolder更新的数据只有一个数据源
+        val instance = TagCloud()
+    }
 
     private var mSinX = 0f
     private var mCosX = 0f
@@ -45,10 +50,15 @@ class TagCloud(
     private var mMinPopularity = 0
     private var mMaxPopularity = 0
 
+    // 标志位，确定初始化完成才允许计算位置
+    @Volatile
+    private var hasInitialized = false
+
     fun create() {
         positionAll()
         calculatePopularity()
         recalculateAngle()
+        hasInitialized = true
         updateAll()
     }
 
@@ -60,10 +70,15 @@ class TagCloud(
     }
 
     fun clear() {
+        hasInitialized = false
         tagList.clear()
     }
 
     operator fun get(position: Int): Tag = tagList[position]
+
+    fun reset() {
+        create()
+    }
 
     fun update() {
         recalculateAngle()
@@ -128,7 +143,10 @@ class TagCloud(
      * 计算旋转后座标，缩放倍数，透明度
      */
     private fun updateAll() {
-        for (tag in tagList) {
+        if (!hasInitialized) return
+        val iterator = tagList.iterator()
+        while (iterator.hasNext()) {
+            val tag = iterator.next()
             val x: Float = tag.spatialX
             val y: Float = tag.spatialY
             val z: Float = tag.spatialZ
@@ -148,18 +166,19 @@ class TagCloud(
             tag.spatialZ = rz2
             // 计算缩放比
             val diameter = 2 * radius
-            val per = diameter * scale / (diameter + rz2) / 2
+            val per = diameter / (diameter + rz2)
             // 计算透明度
-            val delta = diameter + rz2
+            val delta = radius + rz2
             maxDelta = max(maxDelta, delta)
-            minDelta = min(minDelta, delta)
+            minDelta = min(minDelta, if (delta < 0f) 0f else delta)
+            println("rz2:$rz2 maxDelta:$maxDelta minDelta:$minDelta delta:$delta")
             val alpha =
                 minAlpha + (delta - minDelta) / (maxDelta - minDelta) * (maxAlpha - minAlpha)
 
             // 更新tag属性
             tag.flatX = rx3
             tag.flatY = ry3
-            tag.scale = per
+            tag.scale = per * scale
             tag.opacity = 1 - alpha
         }
     }
@@ -197,6 +216,4 @@ class TagCloud(
         }
         tagList.forEach { initTagColor(it) }
     }
-
-
 }
